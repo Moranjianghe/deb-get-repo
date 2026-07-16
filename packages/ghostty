@@ -1,0 +1,24 @@
+DEFVER=1
+
+ARCHS_SUPPORTED="amd64 arm64"
+CODENAMES_SUPPORTED="bookworm trixie forky"
+
+get_github_releases "mkasberg/ghostty-ubuntu" "latest"
+
+if [ "${ACTION}" != prettylist ]; then
+    URL="$(
+        grep -m1 \
+            "browser_download_url.*ghostty_.*_${HOST_ARCH}_${UPSTREAM_CODENAME}\.deb\"" \
+            "${CACHE_FILE}" |
+        cut -d '"' -f4
+    )"
+
+    VERSION_PUBLISHED="$(
+        basename "${URL}" |
+        sed -E "s/^ghostty_(.*)_${HOST_ARCH}_${UPSTREAM_CODENAME}\.deb$/\1/"
+    )"
+fi
+
+PRETTY_NAME="Ghostty"
+WEBSITE="https://ghostty.org/"
+SUMMARY="GPU-accelerated terminal emulator"
