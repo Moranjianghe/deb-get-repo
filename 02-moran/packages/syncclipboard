@@ -1,0 +1,21 @@
+DEFVER=1
+ARCHS_SUPPORTED="amd64 arm64"
+CODENAMES_SUPPORTED="focal jammy noble oracular plucky buster bullseye bookworm trixie sid"
+
+# 自动从 GitHub API 获取最新 release 信息
+get_github_releases "Jeric-X/SyncClipboard" "latest"
+
+if [ "${ACTION}" != prettylist ]; then
+    # 根据当前系统架构动态匹配 .deb 文件 URL
+    if [ "${HOST_ARCH}" = "arm64" ]; then
+        URL=$(grep -m 1 "browser_download_url.*_linux_arm64\.deb\"" "${CACHE_FILE}" | cut -d '"' -f 4)
+    else
+        URL=$(grep -m 1 "browser_download_url.*_linux_x64\.deb\"" "${CACHE_FILE}" | cut -d '"' -f 4)
+    fi
+    # 从 URL 中提取版本号 (例如: .../v3.1.8/... -> 3.1.8)
+    VERSION_PUBLISHED=$(echo "${URL}" | grep -oP '/v\K[0-9.]+')
+fi
+
+PRETTY_NAME="SyncClipboard"
+WEBSITE="https://github.com/Jeric-X/SyncClipboard"
+SUMMARY="跨平台剪贴板同步工具，支持文件上传与文本粘贴修复。"
