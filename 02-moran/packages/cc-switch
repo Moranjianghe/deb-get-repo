@@ -1,0 +1,29 @@
+DEFVER=1
+ARCHS_SUPPORTED="amd64 arm64"
+CODENAMES_SUPPORTED="buster bullseye bookworm trixie sid focal jammy noble oracular plucky"
+
+get_github_releases "farion1231/cc-switch" "latest"
+
+if [ "${ACTION}" != prettylist ]; then
+    # cc-switch 仅发布 amd64 和 arm64 的 deb 包
+    # 文件名格式: CC-Switch-v<version>-Linux-<arch>.deb
+    case "${HOST_ARCH}" in
+        amd64)  FILE_ARCH="x86_64" ;;
+        arm64)  FILE_ARCH="arm64" ;;
+        *)      FILE_ARCH="" ;;
+    esac
+
+    if [ -n "${FILE_ARCH}" ]; then
+        # 注意：grep 模式必须匹配大写的 CC-Switch
+        URL=$(grep -m 1 "browser_download_url.*CC-Switch-v[0-9].*-Linux-${FILE_ARCH}\\.deb\"" "${CACHE_FILE}" | cut -d '"' -f 4)
+
+        if [ -n "${URL}" ]; then
+            # 从 URL 中提取版本号 (例如: CC-Switch-v3.17.0-Linux-x86_64.deb -> 3.17.0)
+            VERSION_PUBLISHED=$(echo "${URL}" | grep -oP 'CC-Switch-v\K[0-9]+\.[0-9]+\.[0-9]+')
+        fi
+    fi
+fi
+
+PRETTY_NAME="CC-Switch"
+WEBSITE="https://github.com/farion1231/cc-switch"
+SUMMARY="A cross-platform switch management tool."
