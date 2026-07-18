@@ -1,4 +1,4 @@
-DEFVER=2
+DEFVER=3
 ARCHS_SUPPORTED="amd64 arm64"
 CODENAMES_SUPPORTED="bookworm trixie forky noble jammy"
 
@@ -8,9 +8,7 @@ if [ "${ACTION}" != prettylist ]; then
     # 优先匹配当前系统的 UPSTREAM_CODENAME
     URL=$(grep -m1 "browser_download_url.*ghostty_.*_${HOST_ARCH}_${UPSTREAM_CODENAME}\.deb\"" "${CACHE_FILE}" | cut -d '"' -f4)
 
-    # 回退机制：若当前 codename 无对应包，尝试通用兼容版本
-    # trixie 通常可作为 Debian testing/sid 的兼容目标
-    # noble 可作为 Ubuntu 24.04+ 的兼容目标
+    # 回退机制
     if [ -z "${URL}" ]; then
         case "${UPSTREAM_CODENAME}" in
             sid|unstable) FALLBACK="trixie" ;;
@@ -23,12 +21,12 @@ if [ "${ACTION}" != prettylist ]; then
     fi
 
     if [ -n "${URL}" ]; then
-        # ✅ 关键修复：使用 grep -oP 精确提取版本号，确保 ~ 符号被完整保留
-        # 匹配模式：ghostty_<version>_<arch>_<codename>.deb
-        VERSION_PUBLISHED=$(basename "${URL}" | grep -oP '(?<=ghostty_).+(?=_'${HOST_ARCH}'_)')
-        
-        # 防御性检查：确保版本号不包含换行符或非法字符
-        VERSION_PUBLISHED=$(echo "${VERSION_PUBLISHED}" | tr -d '[:space:]')
+        # 从文件名中提取版本号
+        VERSION_PUBLISHED=$(basename "${URL}" | grep -oP '(?<=ghostty_).+(?=_'${HOST_ARCH}'_)' | tr -d '[:space:]')
+
+        # ✅ 关键修复：上游文件名使用 .ppa2，但 deb 包内元数据使用 ~ppa2
+        # 必须手动映射以匹配 dpkg 的版本比较规则
+        VERSION_PUBLISHED="${VERSION_PUBLISHED/.ppa2/~ppa2}"
     fi
 fi
 
