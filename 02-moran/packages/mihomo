@@ -1,0 +1,33 @@
+DEFVER=1
+ARCHS_SUPPORTED="amd64 arm64 armhf i386"
+CODENAMES_SUPPORTED="buster bullseye bookworm trixie sid focal jammy noble oracular plucky"
+
+# 获取 GitHub Releases 信息
+get_github_releases "MetaCubeX/mihomo" "latest"
+
+# 仅在非 prettylist 操作时解析下载链接和版本号，以优化性能
+if [ "${ACTION}" != prettylist ]; then
+    # 根据主机架构映射到 mihomo 发布文件的命名规范
+    case "${HOST_ARCH}" in
+        amd64)  FILE_ARCH="linux-amd64" ;;
+        arm64)  FILE_ARCH="linux-arm64" ;;
+        armhf)  FILE_ARCH="linux-armv7" ;;
+        i386)   FILE_ARCH="linux-386" ;;
+        *)      FILE_ARCH="" ;;
+    esac
+
+    if [ -n "${FILE_ARCH}" ]; then
+        # 从缓存的 releases JSON 中提取对应架构的 .deb 文件下载链接
+        # 注意：mihomo 的 release asset 命名格式为 mihomo-linux-<arch>-v<version>.deb
+        URL=$(grep -m 1 "browser_download_url.*mihomo-${FILE_ARCH}-v.*\\.deb\"" "${CACHE_FILE}" | cut -d '"' -f 4)
+        
+        # 从 URL 中提取版本号 (例如: v1.19.29 -> 1.19.29)
+        if [ -n "${URL}" ]; then
+            VERSION_PUBLISHED=$(echo "${URL}" | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+')
+        fi
+    fi
+fi
+
+PRETTY_NAME="mihomo"
+WEBSITE="https://github.com/MetaCubeX/mihomo"
+SUMMARY="A Python Pydantic model for Clash.Meta core."
