@@ -1,27 +1,36 @@
-DEFVER=1
+DEFVER=2
 ARCHS_SUPPORTED="amd64 arm64 armhf i386"
 CODENAMES_SUPPORTED="buster bullseye bookworm trixie sid focal jammy noble oracular plucky"
 
-# 获取 GitHub Releases 信息
 get_github_releases "MetaCubeX/mihomo" "latest"
 
-# 仅在非 prettylist 操作时解析下载链接和版本号，以优化性能
 if [ "${ACTION}" != prettylist ]; then
-    # 根据主机架构映射到 mihomo 发布文件的命名规范
     case "${HOST_ARCH}" in
-        amd64)  FILE_ARCH="linux-amd64" ;;
-        arm64)  FILE_ARCH="linux-arm64" ;;
-        armhf)  FILE_ARCH="linux-armv7" ;;
-        i386)   FILE_ARCH="linux-386" ;;
-        *)      FILE_ARCH="" ;;
+        amd64)
+            # 运行时检测 x86-64 微架构等级 (v3 > v2 > v1)
+            # 使用 glibc 动态链接器探测，这是目前最可靠的运行时检测方法
+            if /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 --help 2>/dev/null | grep -q "x86-64-v3"; then
+                VARIANT="linux-amd64-v3"
+            elif /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 --help 2>/dev/null | grep -q "x86-64-v2"; then
+                VARIANT="linux-amd64-v2"
+            else
+                # 显式回退到 v1 基线版本
+                # 注意：新版 release 已不再提供无 -vX 后缀的版本
+                VARIANT="linux-amd64-v1"
+            fi
+            ;;
+        arm64)  VARIANT="linux-arm64" ;;
+        armhf)  VARIANT="linux-armv7" ;;
+        i386)   VARIANT="linux-386" ;;
+        *)      VARIANT="" ;;
     esac
 
-    if [ -n "${FILE_ARCH}" ]; then
-        # 从缓存的 releases JSON 中提取对应架构的 .deb 文件下载链接
-        # 注意：mihomo 的 release asset 命名格式为 mihomo-linux-<arch>-v<version>.deb
-        URL=$(grep -m 1 "browser_download_url.*mihomo-${FILE_ARCH}-v.*\\.deb\"" "${CACHE_FILE}" | cut -d '"' -f 4)
-        
-        # 从 URL 中提取版本号 (例如: v1.19.29 -> 1.19.29)
+    if [ -n "${VARIANT}" ]; then
+        # 正则说明：
+        # mihomo-${VARIANT}-v[0-9] 确保匹配版本号而非 go1XX 标签
+        # 此模式严格排除带 Go 版本后缀的构建（如 -go124-v1.19.29.deb）
+        URL=$(grep -m 1 "browser_download_url.*mihomo-${VARIANT}-v[0-9].*\\.deb\"" "${CACHE_FILE}" | cut -d '"' -f 4)
+
         if [ -n "${URL}" ]; then
             VERSION_PUBLISHED=$(echo "${URL}" | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+')
         fi
